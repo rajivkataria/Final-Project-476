@@ -10,15 +10,31 @@ def first_call(prompt: str) -> dict:
 
 def run_agent(prompt: str) -> dict:
     problem_type = strategies.classify_problem_type(prompt)
-    dic = first_call(prompt)
-    response = dic.get("response", "")
-    return {"response": response, "problem_type": problem_type}
+    
+    # We use extra checks (5 specifically) for accuracy in math problems
+    if problem_type == "Math":
+        answer = strategies.extra_check_math(prompt, iterations=5)
+        return {"response": answer, "problem_type": problem_type}
+    elif problem_type == "Logical Reasoning":
+        answers = []
+        result = call_model_chat_completions(prompt)
+        if result.get("ok"):
+            answers.append(result.get("text", "").strip())
+        rephrased_prompt = strategies.rephrase_question(prompt)
+        for i in range(3):
+            result = call_model_chat_completions(rephrased_prompt)
+            if result.get("ok"):
+                answers.append(result.get("text", "").strip())
+            rephrased_prompt = strategies.rephrase_question(rephrased_prompt)
+        result = strategies.produce_best_answer(answers, prompt)
+        return {"response": result, "problem_type": problem_type}
+    else:
+        answer = first_call(prompt)
+        return {"response": answer, "problem_type": problem_type}
 
 def main():
-    prompt = "Why is 10 + 9800 = 9810?"
+    prompt = "Explain why does the sun come up every day?"
     result = run_agent(prompt)
-    print("Agent Response:", result.get("response", ""))
-    print("Problem Type:", result.get("problem_type", ""))
-
+    print("Agent Response:", result["response"], "\nProblem Type:", result["problem_type"])
 if __name__ == "__main__":
     main()

@@ -7,11 +7,12 @@ from apiClient import call_model_chat_completions
 def get_math_output(question: str):
     result = call_model_chat_completions(question)
     if result.get("ok"):
-        out = result.get("text", "")
-        out = re.search(r'-?\d+(\.\d+)?', out)
-        if out:
-            return out.group(0)
+        text = result.get("text", "")
+        match = re.search(r"-?\d+(\.\d+)?", text)
+        if match:
+            return match.group(0)
     return ""
+
 def extra_check_math(problem: str, iterations:int = 5) -> str:
     results = []
     for i in range(iterations):
@@ -22,11 +23,35 @@ def extra_check_math(problem: str, iterations:int = 5) -> str:
     return ""
 
 def produce_best_answer(answers: list, prompt: str) -> str:
-    curr_prompt = "From the following answers to the given prompt, provide  the most accurate and comprehesive answer, taking in as my details from all answers. The answers are also below:\n\n"
+    curr_prompt = "From the following answers to the given prompt, provide  the most a ccurate and comprehesive answer, taking in as my details from all answers. The answers are also below:\n\n"
     curr_prompt += "Prompt: " + prompt + "\n\n"
     curr_prompt += "\n".join(f"Answer {i+1}: {ans}" for i, ans in enumerate(answers))
     result = call_model_chat_completions(curr_prompt)
     return result.get("text", "").strip() if result.get("ok") else ""
+import re
+from apiClient import call_model_chat_completions
+
+
+def extract_number(text):
+    m = re.search(r"-?\d+(\.\d+)?", text)
+    return m.group(0) if m else ""
+
+
+def combine_answers(answers, prompt):
+    join = "\n".join(f"- {a}" for a in answers)
+    ask = (
+        "Combine the following answers into one clear, correct, concise answer.\n\n"
+        f"Question: {prompt}\n\nAnswers:\n{join}"
+    )
+    r = call_model_chat_completions(ask)
+    return r.get("text", "").strip() if r.get("ok") else ""
+
+
+def rephrase_question(q):
+    ask = f"Rephrase the question without changing its meaning:\n{q}"
+    r = call_model_chat_completions(ask)
+    return r.get('text', '').strip() if r.get("ok") else q
+
 
 # def handle_logic_reasoning(question:str) -> str:
 #     results = []
@@ -71,13 +96,13 @@ def classify_problem_type(problem: str) -> str:
 
     return "Common Sense"
 
-def rephrase_question(question: str) -> str:
-    prompt = (
-        "Rewrite the following question in a totally different way, preserving the exact meaning. "
-        "Keep it simple and do NOT change the logic:\n\n"
-        f"{question}"
-    )
-    response = call_model_chat_completions(prompt)
-    if response.get("ok"):
-        return response.get("text", "").strip()
-    return ""
+# def rephrase_question(question: str) -> str:
+#     prompt = (
+#         "Rewrite the following question in a totally different way, preserving the exact meaning. "
+#         "Keep it simple and do NOT change the logic:\n\n"
+#         f"{question}"
+#     )
+#     response = call_model_chat_completions(prompt)
+#     if response.get("ok"):
+#         return response.get("text", "").strip()
+#     return ""

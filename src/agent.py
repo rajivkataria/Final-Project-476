@@ -12,9 +12,18 @@ def run_agent(prompt: str) -> dict:
     problem_type = strategies.classify_problem_type(prompt)
     
     # We use extra checks (5 specifically) for accuracy in math problems
+     # Temporary return to avoid incomplete code error
+    # result = call_model_chat_completions(prompt)
+
+    # if result.get("ok"):
+    #     text = result.get("text", "").strip()
+    # else:
+    #     text = ""
+
+    # return {"response": text}
     if problem_type == "Math":
-        answer = strategies.extra_check_math(prompt, iterations=5)
-        return {"response": answer, "problem_type": problem_type}
+        answer = strategies.extra_check_math(prompt, iterations=3)
+        return {"response": answer}
     elif problem_type == "Logical Reasoning":
         answers = []
         result = call_model_chat_completions(prompt)
@@ -27,10 +36,11 @@ def run_agent(prompt: str) -> dict:
                 answers.append(result.get("text", "").strip())
             rephrased_prompt = strategies.rephrase_question(rephrased_prompt)
         result = strategies.produce_best_answer(answers, prompt)
-        return {"response": result, "problem_type": problem_type}
+        return {"response": result}
     else:
-        answer = first_call(prompt)
-        return {"response": answer, "problem_type": problem_type}
+        answer = call_model_chat_completions(prompt)
+        answer = answer.get("text", "").strip() if answer.get("ok") else ""
+        return {"response": answer}
 
 def main():
     prompt = "Explain why does the sun come up every day?"
